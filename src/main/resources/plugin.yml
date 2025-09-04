@@ -1,0 +1,12 @@
+name: MysterriaZones
+version: '1.0.0'
+main: net.mysterria.zones.MysterriaZones
+api-version: '1.21'
+prefix: '&8&6Zones&8 &r'
+authors: [ ikeepcalm ]
+commands:
+  zone:
+    description: Zone management commands
+    usage: /zone <subcommand>
+    permission: godrefuge.zone
+    aliases: [ zones, godrefuge, gr ]
