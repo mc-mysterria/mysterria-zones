@@ -61,7 +61,7 @@ public class MysterriaZones extends JavaPlugin implements Listener {
         }
         
         if (zoneManager != null) {
-            zoneManager.saveZones();
+            zoneManager.getAllZones().forEach(zoneManager::saveZone);
         }
         
         saveConfigData();

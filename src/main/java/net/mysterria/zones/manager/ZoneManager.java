@@ -15,97 +15,75 @@ import java.util.logging.Logger;
 public class ZoneManager {
     private final MysterriaZones plugin;
     private final Map<String, Zone> zones;
-    private final File zonesFile;
-    private FileConfiguration zonesConfig;
+    private final File zonesFolder;
     private final Logger logger;
 
     public ZoneManager(MysterriaZones plugin) {
         this.plugin = plugin;
         this.zones = new HashMap<>();
         this.logger = plugin.getLogger();
-        this.zonesFile = new File(plugin.getDataFolder(), "zones.yml");
-        
-        if (!plugin.getDataFolder().exists()) {
-            plugin.getDataFolder().mkdirs();
+        this.zonesFolder = new File(plugin.getDataFolder(), "zones");
+
+        if (!zonesFolder.exists()) {
+            zonesFolder.mkdirs();
         }
-        
+
         loadZones();
     }
 
     public void loadZones() {
         zones.clear();
-        
-        if (!zonesFile.exists()) {
-            try {
-                zonesFile.createNewFile();
-                zonesConfig = YamlConfiguration.loadConfiguration(zonesFile);
-                zonesConfig.set("zones", new HashMap<String, Object>());
-                zonesConfig.save(zonesFile);
-                logger.info("Created new zones.yml file");
-            } catch (IOException e) {
-                logger.severe("Failed to create zones.yml: " + e.getMessage());
-                return;
-            }
-        } else {
-            zonesConfig = YamlConfiguration.loadConfiguration(zonesFile);
+        File[] zoneFiles = zonesFolder.listFiles((dir, name) -> name.endsWith(".yml"));
+        if (zoneFiles == null) {
+            logger.info("No zones to load.");
+            return;
         }
 
-        ConfigurationSection zonesSection = zonesConfig.getConfigurationSection("zones");
-        if (zonesSection != null) {
-            for (String zoneName : zonesSection.getKeys(false)) {
-                try {
-                    ConfigurationSection zoneSection = zonesSection.getConfigurationSection(zoneName);
-                    if (zoneSection != null) {
-                        Map<String, Object> zoneData = new HashMap<>();
-                        for (String key : zoneSection.getKeys(true)) {
-                            zoneData.put(key, zoneSection.get(key));
-                        }
-                        Zone zone = new Zone(zoneData);
-                        zones.put(zoneName, zone);
-                        logger.info("Loaded zone: " + zoneName);
-                    }
-                } catch (Exception e) {
-                    logger.warning("Failed to load zone " + zoneName + ": " + e.getMessage());
+        for (File zoneFile : zoneFiles) {
+            try {
+                String zoneName = zoneFile.getName().replace(".yml", "");
+                FileConfiguration zoneConfig = YamlConfiguration.loadConfiguration(zoneFile);
+                Map<String, Object> zoneData = new HashMap<>();
+                for (String key : zoneConfig.getKeys(true)) {
+                    zoneData.put(key, zoneConfig.get(key));
                 }
+                Zone zone = new Zone(zoneData);
+                zones.put(zoneName, zone);
+                logger.info("Loaded zone: " + zoneName);
+            } catch (Exception e) {
+                logger.warning("Failed to load zone from " + zoneFile.getName() + ": " + e.getMessage());
             }
         }
-        
-        logger.info("Loaded " + zones.size() + " zones");
+        logger.info("Loaded " + zones.size() + " zones.");
     }
 
-    public void saveZones() {
+    public void saveZone(Zone zone) {
+        File zoneFile = new File(zonesFolder, zone.getName() + ".yml");
+        FileConfiguration zoneConfig = new YamlConfiguration();
+        Map<String, Object> serialized = zone.serialize();
+        for (Map.Entry<String, Object> entry : serialized.entrySet()) {
+            zoneConfig.set(entry.getKey(), entry.getValue());
+        }
         try {
-            if (zonesConfig == null) {
-                zonesConfig = YamlConfiguration.loadConfiguration(zonesFile);
-            }
-            
-            zonesConfig.set("zones", null);
-            ConfigurationSection zonesSection = zonesConfig.createSection("zones");
-            
-            for (Map.Entry<String, Zone> entry : zones.entrySet()) {
-                ConfigurationSection zoneSection = zonesSection.createSection(entry.getKey());
-                Map<String, Object> serialized = entry.getValue().serialize();
-                for (Map.Entry<String, Object> dataEntry : serialized.entrySet()) {
-                    zoneSection.set(dataEntry.getKey(), dataEntry.getValue());
-                }
-            }
-            
-            zonesConfig.save(zonesFile);
-            logger.info("Saved " + zones.size() + " zones to zones.yml");
+            zoneConfig.save(zoneFile);
+            logger.info("Saved zone: " + zone.getName());
         } catch (IOException e) {
-            logger.severe("Failed to save zones.yml: " + e.getMessage());
+            logger.severe("Failed to save zone " + zone.getName() + ": " + e.getMessage());
         }
     }
 
     public void createZone(String name, Location point1, Location point2) {
         Zone zone = new Zone(name, point1, point2);
         zones.put(name, zone);
-        saveZones();
+        saveZone(zone);
     }
 
     public boolean deleteZone(String name) {
         if (zones.remove(name) != null) {
-            saveZones();
+            File zoneFile = new File(zonesFolder, name + ".yml");
+            if (zoneFile.exists()) {
+                zoneFile.delete();
+            }
             return true;
         }
         return false;
