@@ -145,7 +145,7 @@ public class ZoneCommand implements TabExecutor {
 
         String zoneName = args[1];
         Zone zone = plugin.getZoneManager().getZone(zoneName);
-        
+
         if (zone == null) {
             player.sendMessage(Component.text("Zone '" + zoneName + "' not found!", NamedTextColor.RED));
             return;
@@ -158,50 +158,60 @@ public class ZoneCommand implements TabExecutor {
         player.sendMessage(Component.text("Max Point: " + zone.getMaxX() + ", " + zone.getMaxY() + ", " + zone.getMaxZ(), NamedTextColor.YELLOW));
         player.sendMessage(Component.text("Protection: " + (zone.isProtection() ? "Enabled" : "Disabled"), NamedTextColor.YELLOW));
         player.sendMessage(Component.text("Priority: " + zone.getPriority(), NamedTextColor.YELLOW));
-        player.sendMessage(Component.text("Enter Message: " + zone.getEnterMessage(), NamedTextColor.YELLOW));
-        player.sendMessage(Component.text("Exit Message: " + zone.getExitMessage(), NamedTextColor.YELLOW));
+
+        player.sendMessage(Component.text("Enter Messages:", NamedTextColor.YELLOW));
+        zone.getEnterMessages().forEach((lang, msg) ->
+                player.sendMessage(Component.text("  " + lang + ": " + msg, NamedTextColor.WHITE))
+        );
+
+        player.sendMessage(Component.text("Exit Messages:", NamedTextColor.YELLOW));
+        zone.getExitMessages().forEach((lang, msg) ->
+                player.sendMessage(Component.text("  " + lang + ": " + msg, NamedTextColor.WHITE))
+        );
     }
 
     private void handleSetEnter(Player player, String[] args) {
-        if (args.length < 3) {
-            player.sendMessage(Component.text("Usage: /zone setenter <name> <message>", NamedTextColor.RED));
+        if (args.length < 4) {
+            player.sendMessage(Component.text("Usage: /zone setenter <name> <lang> <message>", NamedTextColor.RED));
             return;
         }
 
         String zoneName = args[1];
         Zone zone = plugin.getZoneManager().getZone(zoneName);
-        
+
         if (zone == null) {
             player.sendMessage(Component.text("Zone '" + zoneName + "' not found!", NamedTextColor.RED));
             return;
         }
 
-        String message = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
-        zone.setEnterMessage(message);
-        plugin.getZoneManager().updateZone(zone);
-        
-        player.sendMessage(Component.text("Enter message updated for zone '" + zoneName + "'!", NamedTextColor.GREEN));
+        String lang = args[2].toLowerCase();
+        String message = String.join(" ", Arrays.copyOfRange(args, 3, args.length));
+        zone.getEnterMessages().put(lang, message);
+        plugin.getZoneManager().saveZone(zone);
+
+        player.sendMessage(Component.text("Enter message for language '" + lang + "' updated for zone '" + zoneName + "'!", NamedTextColor.GREEN));
     }
 
     private void handleSetExit(Player player, String[] args) {
-        if (args.length < 3) {
-            player.sendMessage(Component.text("Usage: /zone setexit <name> <message>", NamedTextColor.RED));
+        if (args.length < 4) {
+            player.sendMessage(Component.text("Usage: /zone setexit <name> <lang> <message>", NamedTextColor.RED));
             return;
         }
 
         String zoneName = args[1];
         Zone zone = plugin.getZoneManager().getZone(zoneName);
-        
+
         if (zone == null) {
             player.sendMessage(Component.text("Zone '" + zoneName + "' not found!", NamedTextColor.RED));
             return;
         }
 
-        String message = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
-        zone.setExitMessage(message);
-        plugin.getZoneManager().updateZone(zone);
-        
-        player.sendMessage(Component.text("Exit message updated for zone '" + zoneName + "'!", NamedTextColor.GREEN));
+        String lang = args[2].toLowerCase();
+        String message = String.join(" ", Arrays.copyOfRange(args, 3, args.length));
+        zone.getExitMessages().put(lang, message);
+        plugin.getZoneManager().saveZone(zone);
+
+        player.sendMessage(Component.text("Exit message for language '" + lang + "' updated for zone '" + zoneName + "'!", NamedTextColor.GREEN));
     }
 
     private void handleSetDisplay(Player player, String[] args) {

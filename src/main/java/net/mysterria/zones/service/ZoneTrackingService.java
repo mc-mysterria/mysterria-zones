@@ -52,12 +52,14 @@ public class ZoneTrackingService {
         Zone previousZone = playerCurrentZones.get(player.getUniqueId());
 
         if (currentZone != previousZone) {
+            String locale = player.getLocale().split("_")[0].toLowerCase();
+
             if (previousZone != null) {
-                onZoneExit(player, previousZone);
+                onZoneExit(player, previousZone, locale);
             }
-            
+
             if (currentZone != null) {
-                onZoneEnter(player, currentZone);
+                onZoneEnter(player, currentZone, locale);
                 playerCurrentZones.put(player.getUniqueId(), currentZone);
             } else {
                 playerCurrentZones.remove(player.getUniqueId());
@@ -65,10 +67,10 @@ public class ZoneTrackingService {
         }
     }
 
-    private void onZoneEnter(Player player, Zone zone) {
-        Component enterMessage = zone.getEnterComponent();
+    private void onZoneEnter(Player player, Zone zone, String locale) {
+        Component enterMessage = zone.getEnterComponent(locale);
         Component displayName = zone.getDisplayNameComponent();
-        
+
         player.showTitle(Title.title(
                 displayName,
                 enterMessage,
@@ -85,9 +87,9 @@ public class ZoneTrackingService {
         player.sendMessage(enterMessage);
     }
 
-    private void onZoneExit(Player player, Zone zone) {
-        Component exitMessage = zone.getExitComponent();
-        
+    private void onZoneExit(Player player, Zone zone, String locale) {
+        Component exitMessage = zone.getExitComponent(locale);
+
         player.showTitle(Title.title(
                 Component.text(""),
                 exitMessage,
