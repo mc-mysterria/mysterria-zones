@@ -1,8 +1,9 @@
 package net.mysterria.zones.listeners;
 
+import dev.ua.ikeepcalm.coi.api.event.AbilityUsageEvent;
+import lombok.Getter;
 import net.mysterria.zones.MysterriaZones;
 import net.mysterria.zones.model.Zone;
-import lombok.Getter;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
@@ -13,6 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
@@ -28,15 +30,41 @@ import java.util.Map;
 import java.util.Random;
 
 public class SecureZoneListener implements Listener {
+
     @Getter
     private final Map<Location, BlockState> placedBlockStates = new HashMap<>();
+
     @Getter
     private final Map<Location, BlockState> brokenBlockStates = new HashMap<>();
+
     private final Random random = new Random();
+
     private final int minRestoreDelayTicks = 2 * 20;
     private final int maxRestoreDelayTicks = 10 * 20;
-    private String bypassPermission = "godrefuge.bypass";
+    private final String bypassPermission = "myzones.bypass";
 
+    @EventHandler
+    public void onAbilityUsage(AbilityUsageEvent event) {
+        if (event.getPlayer().hasPermission(bypassPermission)) {
+            return;
+        }
+
+        Location location = event.getPlayer().getLocation();
+        Zone zone = MysterriaZones.getInstance().getZoneManager().getHighestPriorityZone(location);
+        if (zone != null && zone.isProtection()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onEntitySpawn(CreatureSpawnEvent event) {
+        if (event.getSpawnReason() == CreatureSpawnEvent.SpawnReason.NATURAL) {
+            Zone zone = MysterriaZones.getInstance().getZoneManager().getHighestPriorityZone(event.getLocation());
+            if (zone != null && zone.isProtection()) {
+                event.setCancelled(true);
+            }
+        }
+    }
 
     @EventHandler
     public void onPlayerRespawn(PlayerRespawnEvent event) {
@@ -132,17 +160,6 @@ public class SecureZoneListener implements Listener {
         handleExplosion(event.blockList());
     }
 
-    private void handleExplosion(List<Block> blockList) {
-        blockList.removeIf(block -> {
-            Zone zone = MysterriaZones.getInstance().getZoneManager().getHighestPriorityZone(block.getLocation());
-            if (zone != null && zone.isProtection()) {
-                recordBrokenBlock(block);
-                return true;
-            }
-            return false;
-        });
-    }
-
     @EventHandler(ignoreCancelled = true)
     public void onBlockPhysics(BlockPhysicsEvent event) {
         Zone zone = MysterriaZones.getInstance().getZoneManager().getHighestPriorityZone(event.getBlock().getLocation());
@@ -173,6 +190,17 @@ public class SecureZoneListener implements Listener {
         if (zone != null && zone.isProtection()) {
             event.setCancelled(true);
         }
+    }
+
+    private void handleExplosion(List<Block> blockList) {
+        blockList.removeIf(block -> {
+            Zone zone = MysterriaZones.getInstance().getZoneManager().getHighestPriorityZone(block.getLocation());
+            if (zone != null && zone.isProtection()) {
+                recordBrokenBlock(block);
+                return true;
+            }
+            return false;
+        });
     }
 
     private void recordBrokenBlock(Block block) {

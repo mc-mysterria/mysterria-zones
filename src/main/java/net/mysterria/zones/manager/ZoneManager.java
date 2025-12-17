@@ -3,7 +3,6 @@ package net.mysterria.zones.manager;
 import net.mysterria.zones.MysterriaZones;
 import net.mysterria.zones.model.Zone;
 import org.bukkit.Location;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -124,6 +123,20 @@ public class ZoneManager {
 
     public void updateZone(Zone zone) {
         zones.put(zone.getName(), zone);
-        saveZones();
+        saveZone(zone);
+    }
+
+    public void banishPlayer(Zone zone, UUID playerId) {
+        zone.banishPlayer(playerId);
+        saveZone(zone);
+    }
+
+    public void unbanishPlayer(Zone zone, UUID playerId) {
+        zone.unbanishPlayer(playerId);
+        saveZone(zone);
+    }
+
+    public Set<UUID> getBanishedPlayers(Zone zone) {
+        return zone.getBanishedPlayers();
     }
 }

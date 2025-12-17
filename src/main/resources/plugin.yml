@@ -4,9 +4,16 @@ main: net.mysterria.zones.MysterriaZones
 api-version: '1.21'
 prefix: '&8&6Zones&8 &r'
 authors: [ ikeepcalm ]
-commands:
-  zone:
-    description: Zone management commands
-    usage: /zone <subcommand>
-    permission: godrefuge.zone
-    aliases: [ zones, godrefuge, gr ]
+softdepend:
+  - CircleOfImagination
+
+permissions:
+  myzones.zone:
+    description: Access to zone commands
+    default: op
+  myzones.zone.admin:
+    description: Access to zone admin commands (banish)
+    default: op
+  myzones.bypass:
+    description: Bypass zone protection
+    default: op

@@ -17,9 +17,17 @@ repositories {
         name = "sonatype"
         url = "https://oss.sonatype.org/content/groups/public/"
     }
+
+    maven { url "https://repo.panda-lang.org/releases" }
+
+    maven {
+        url = "https://nexus.mysterria.net/repository/plugin-public/"
+    }
 }
 
 dependencies {
+    implementation "dev.rollczi:litecommands-bukkit:3.10.2"
+    compileOnly("dev.ua.ikeepcalm:circle-of-imagination-api:1.3.2-SNAPSHOT")
     compileOnly("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")
     compileOnly 'org.projectlombok:lombok:1.18.36'
     annotationProcessor 'org.projectlombok:lombok:1.18.36'

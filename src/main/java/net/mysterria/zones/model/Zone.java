@@ -8,8 +8,7 @@ import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Data
 public class Zone implements ConfigurationSerializable {
@@ -18,10 +17,11 @@ public class Zone implements ConfigurationSerializable {
     private String worldName;
     private int minX, minY, minZ;
     private int maxX, maxY, maxZ;
-    private Map<String, String> enterMessages;
-    private Map<String, String> exitMessages;
+    private String enterMessage;
+    private String exitMessage;
     private boolean protection;
     private int priority;
+    private Set<UUID> banishedPlayers;
 
     public Zone(String name, Location point1, Location point2) {
         this.name = name;
@@ -33,12 +33,11 @@ public class Zone implements ConfigurationSerializable {
         this.maxX = Math.max(point1.getBlockX(), point2.getBlockX());
         this.maxY = Math.max(point1.getBlockY(), point2.getBlockY());
         this.maxZ = Math.max(point1.getBlockZ(), point2.getBlockZ());
-        this.enterMessages = new HashMap<>();
-        this.exitMessages = new HashMap<>();
-        enterMessages.put("en", "&aWelcome to &e" + displayName + "&a!");
-        exitMessages.put("en", "&cYou left &e" + displayName + "&c!");
+        this.enterMessage = "&aWelcome to &e" + displayName + "&a!";
+        this.exitMessage = "&cYou left &e" + displayName + "&c!";
         this.protection = true;
         this.priority = 1;
+        this.banishedPlayers = new HashSet<>();
     }
 
     public Zone(Map<String, Object> map) {
@@ -53,50 +52,74 @@ public class Zone implements ConfigurationSerializable {
         this.maxZ = (Integer) map.get("maxZ");
         this.protection = (Boolean) map.getOrDefault("protection", true);
         this.priority = (Integer) map.getOrDefault("priority", 1);
-        this.enterMessages = new HashMap<>();
-        this.exitMessages = new HashMap<>();
-
+        // Handle backward compatibility: convert old i18n maps to single string
         if (map.containsKey("enterMessages")) {
             ConfigurationSection enterSection = (ConfigurationSection) map.get("enterMessages");
-            for (String lang : enterSection.getKeys(false)) {
-                enterMessages.put(lang, enterSection.getString(lang));
+            // Take "en" if available, otherwise first available language
+            if (enterSection.contains("en")) {
+                this.enterMessage = enterSection.getString("en");
+            } else {
+                String firstLang = enterSection.getKeys(false).iterator().next();
+                this.enterMessage = enterSection.getString(firstLang);
             }
+        } else if (map.containsKey("enterMessage")) {
+            this.enterMessage = (String) map.get("enterMessage");
         } else {
-            enterMessages.put("en", "&aWelcome to &e" + displayName + "&a!");
+            this.enterMessage = "&aWelcome to &e" + displayName + "&a!";
         }
 
         if (map.containsKey("exitMessages")) {
             ConfigurationSection exitSection = (ConfigurationSection) map.get("exitMessages");
-            for (String lang : exitSection.getKeys(false)) {
-                exitMessages.put(lang, exitSection.getString(lang));
+            // Take "en" if available, otherwise first available language
+            if (exitSection.contains("en")) {
+                this.exitMessage = exitSection.getString("en");
+            } else {
+                String firstLang = exitSection.getKeys(false).iterator().next();
+                this.exitMessage = exitSection.getString(firstLang);
             }
+        } else if (map.containsKey("exitMessage")) {
+            this.exitMessage = (String) map.get("exitMessage");
         } else {
-            exitMessages.put("en", "&cYou left &e" + displayName + "&c!");
+            this.exitMessage = "&cYou left &e" + displayName + "&c!";
         }
+
+        this.banishedPlayers = new HashSet<>();
+        if (map.containsKey("banishedPlayers")) {
+            List<String> banishedList = (List<String>) map.get("banishedPlayers");
+            for (String uuidStr : banishedList) {
+                try {
+                    banishedPlayers.add(UUID.fromString(uuidStr));
+                } catch (IllegalArgumentException e) {
+                    // Skip invalid UUIDs
+                }
+            }
+        }
+    }
+
+    public static Zone deserialize(Map<String, Object> map) {
+        return new Zone(map);
     }
 
     public boolean contains(Location location) {
         if (location.getWorld() == null || !location.getWorld().getName().equals(worldName)) {
             return false;
         }
-        
+
         int x = location.getBlockX();
         int y = location.getBlockY();
         int z = location.getBlockZ();
-        
+
         return x >= minX && x <= maxX &&
                y >= minY && y <= maxY &&
                z >= minZ && z <= maxZ;
     }
 
-    public Component getEnterComponent(String locale) {
-        String message = enterMessages.getOrDefault(locale, enterMessages.get("en"));
-        return LegacyComponentSerializer.legacyAmpersand().deserialize(message);
+    public Component getEnterComponent() {
+        return LegacyComponentSerializer.legacyAmpersand().deserialize(enterMessage);
     }
 
-    public Component getExitComponent(String locale) {
-        String message = exitMessages.getOrDefault(locale, exitMessages.get("en"));
-        return LegacyComponentSerializer.legacyAmpersand().deserialize(message);
+    public Component getExitComponent() {
+        return LegacyComponentSerializer.legacyAmpersand().deserialize(exitMessage);
     }
 
     public Location getMinPoint() {
@@ -127,10 +150,31 @@ public class Zone implements ConfigurationSerializable {
         map.put("exitMessage", exitMessage);
         map.put("protection", protection);
         map.put("priority", priority);
+
+        // Save banished players
+        List<String> banishedList = new ArrayList<>();
+        for (UUID uuid : banishedPlayers) {
+            banishedList.add(uuid.toString());
+        }
+        map.put("banishedPlayers", banishedList);
+
         return map;
     }
 
-    public static Zone deserialize(Map<String, Object> map) {
-        return new Zone(map);
+    // Banish management methods
+    public boolean isBanished(UUID playerId) {
+        return banishedPlayers.contains(playerId);
+    }
+
+    public void banishPlayer(UUID playerId) {
+        banishedPlayers.add(playerId);
+    }
+
+    public void unbanishPlayer(UUID playerId) {
+        banishedPlayers.remove(playerId);
+    }
+
+    public Set<UUID> getBanishedPlayers() {
+        return new HashSet<>(banishedPlayers);
     }
 }

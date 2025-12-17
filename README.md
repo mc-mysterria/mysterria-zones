@@ -1,7 +1,7 @@
-# GodRefuge Enhanced Zone System
+# myzones Enhanced Zone System
 
 ## Overview
-The GodRefuge plugin has been enhanced to support multiple protected zones with modern Adventure API components, YAML persistence, and advanced zone management features.
+The myzones plugin has been enhanced to support multiple protected zones with modern Adventure API components, YAML persistence, and advanced zone management features.
 
 ## New Features
 
@@ -69,8 +69,8 @@ zones:
 - Handles zone transitions smoothly
 
 ## Permissions
-- `godrefuge.zone` - Access to zone commands
-- `godrefuge.bypass` - Bypass zone protection (inherited from original system)
+- `myzones.zone` - Access to zone commands
+- `myzones.bypass` - Bypass zone protection (inherited from original system)
 
 ## Zone Protection Features
 All original protection features work with the new zone system:
@@ -82,11 +82,11 @@ All original protection features work with the new zone system:
 - Interaction blocking (except lecterns and crafting tables)
 
 ## Legacy Command Support
-The old `/godrefuge` and `/gr` commands are now aliases that redirect to the new zone system:
-- `/godrefuge pos1` - Set first position (same as `/zone pos1`)
-- `/godrefuge pos2` - Set second position (same as `/zone pos2`)
-- `/godrefuge define [name]` - Create a zone (default name: "main")
-- `/godrefuge clear` - Delete the "main" zone
+The old `/myzones` and `/gr` commands are now aliases that redirect to the new zone system:
+- `/myzones pos1` - Set first position (same as `/zone pos1`)
+- `/myzones pos2` - Set second position (same as `/zone pos2`)
+- `/myzones define [name]` - Create a zone (default name: "main")
+- `/myzones clear` - Delete the "main" zone
 
 ## Usage Examples
 

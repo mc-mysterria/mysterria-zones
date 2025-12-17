@@ -1,12 +1,19 @@
 package net.mysterria.zones;
 
-import net.mysterria.zones.commands.ZoneCommand;
+import dev.rollczi.litecommands.LiteCommands;
+import dev.rollczi.litecommands.bukkit.LiteBukkitFactory;
+import lombok.Getter;
+import lombok.Setter;
+import net.mysterria.zones.commands.ZoneBanishCommands;
+import net.mysterria.zones.commands.ZoneCommands;
+import net.mysterria.zones.commands.ZoneConfigCommands;
+import net.mysterria.zones.commands.ZoneUtilityCommands;
 import net.mysterria.zones.listeners.SecureZoneListener;
 import net.mysterria.zones.manager.ZoneManager;
 import net.mysterria.zones.service.ZoneTrackingService;
-import lombok.Getter;
-import lombok.Setter;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -24,6 +31,7 @@ public class MysterriaZones extends JavaPlugin implements Listener {
 
     private ZoneManager zoneManager;
     private ZoneTrackingService zoneTrackingService;
+    private LiteCommands<CommandSender> liteCommands;
 
     @Nullable
     private Location point1 = null;
@@ -34,36 +42,36 @@ public class MysterriaZones extends JavaPlugin implements Listener {
     @Override
     public void onEnable() {
         instance = this;
-        getLogger().info("GodRefuge plugin enabled!");
-        
+        getLogger().info("myzones plugin enabled!");
+
         zoneManager = new ZoneManager(this);
         zoneTrackingService = new ZoneTrackingService(this);
-        
+
         getServer().getPluginManager().registerEvents(new SecureZoneListener(), this);
-        
-        if (getServer().getPluginCommand("zone") != null) {
-            ZoneCommand zoneCommand = new ZoneCommand(this);
-            getServer().getPluginCommand("zone").setExecutor(zoneCommand);
-            getServer().getPluginCommand("zone").setTabCompleter(zoneCommand);
-        }
-        
+
+        registerLiteCommands();
+
         zoneTrackingService.startTracking();
-        
+
         loadConfig();
     }
 
     @Override
     public void onDisable() {
-        getLogger().info("GodRefuge plugin disabled!");
-        
+        getLogger().info("myzones plugin disabled!");
+
+        if (liteCommands != null) {
+            liteCommands.unregister();
+        }
+
         if (zoneTrackingService != null) {
             zoneTrackingService.stopTracking();
         }
-        
+
         if (zoneManager != null) {
             zoneManager.getAllZones().forEach(zoneManager::saveZone);
         }
-        
+
         saveConfigData();
     }
 
@@ -82,15 +90,15 @@ public class MysterriaZones extends JavaPlugin implements Listener {
                 point1 = deserializeLocation(config.getConfigurationSection("point1"));
                 point2 = deserializeLocation(config.getConfigurationSection("point2"));
                 areaDefined = true;
-                getLogger().info("Loaded GodRefuge area from config.");
+                getLogger().info("Loaded myzones area from config.");
             } catch (IllegalArgumentException | NullPointerException e) {
-                getLogger().warning("Failed to load GodRefuge area from config. Points might be invalid or corrupted.");
+                getLogger().warning("Failed to load myzones area from config. Points might be invalid or corrupted.");
                 point1 = null;
                 point2 = null;
                 areaDefined = false;
             }
         } else {
-            getLogger().info("No GodRefuge area defined in config yet.");
+            getLogger().info("No myzones area defined in config yet.");
             point1 = null;
             point2 = null;
             areaDefined = false;
@@ -103,12 +111,12 @@ public class MysterriaZones extends JavaPlugin implements Listener {
         if (point1 != null && point2 != null) {
             config.set("point1", serializeLocation(point1));
             config.set("point2", serializeLocation(point2));
-            getLogger().info("Saved GodRefuge area to config.");
+            getLogger().info("Saved myzones area to config.");
         } else {
             config.set("point1", null);
             config.set("point2", null);
             areaDefined = false;
-            getLogger().info("Cleared GodRefuge area from config.");
+            getLogger().info("Cleared myzones area from config.");
         }
         saveConfig();
     }
@@ -130,5 +138,19 @@ public class MysterriaZones extends JavaPlugin implements Listener {
         double z = section.getDouble("z");
         if (worldName == null) throw new IllegalArgumentException("World name is missing or invalid in config.");
         return new Location(getServer().getWorld(worldName), x, y, z);
+    }
+
+    private void registerLiteCommands() {
+        Bukkit.getScheduler().runTask(this, () -> {
+            this.liteCommands = LiteBukkitFactory.builder()
+                    .commands(
+                            new ZoneCommands(this),
+                            new ZoneConfigCommands(this),
+                            new ZoneBanishCommands(this),
+                            new ZoneUtilityCommands(this)
+                    )
+                    .build();
+            getLogger().info("LiteCommands registered successfully!");
+        });
     }
 }
